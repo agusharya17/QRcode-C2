@@ -1,11 +1,13 @@
 package com.example.qrcodescanner_21c2;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,7 +27,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView textViewNama, textViewKelas, textViewNIM;
     //qr code scanner
     private IntentIntegrator qrScan;
-
+    @SuppressLint("CutPasteID")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,37 +53,63 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //jika qrcode tidak ada sama sekali
             if (result.getContents() == null) {
                 Toast.makeText(this, "Hasil SCANNING tidak ada", Toast.LENGTH_LONG).show();
-            }else if (Patterns.WEB_URL.matcher(result.getContents()).matches()) {
+            } else if (Patterns.WEB_URL.matcher(result.getContents()).matches()) {
                 Intent visitUrl = new Intent(Intent.ACTION_VIEW, Uri.parse(result.getContents()));
                 startActivity(visitUrl);
                 //menelepon
-            }else if (Patterns.PHONE.matcher(result.getContents()).matches()) {
+            } else if (Patterns.PHONE.matcher(result.getContents()).matches()) {
                 String telp = String.valueOf(result.getContents());
                 Intent callIntent = new Intent(Intent.ACTION_CALL);
-                callIntent.setData(Uri.parse("tel:"+ telp));
+                callIntent.setData(Uri.parse("tel:" + telp));
                 startActivity(callIntent);
-            } else {
-                //jika qrcode ada/ditemukan datanya
-                try {
-                    //Konversi datanya ke json
-                    JSONObject obj = new JSONObject(result.getContents());
-                    //di set nilai datanya ke textview
-                    textViewNama.setText(obj.getString("Nama"));
-                    textViewKelas.setText(obj.getString("Kelas"));
-                    textViewNIM.setText(obj.getString("NIM"));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, result.getContents(), Toast.LENGTH_LONG).show();
+            }
+                // Untuk Logika Email
+                String alamat = result.getContents();
+                String at = "@gmail";
+                if (alamat.contains(at)) {
+                    Intent intent = new Intent(Intent.ACTION_SEND);
+                    String[] recipients = {alamat.replace("http://", "")};
+                    intent.putExtra(Intent.EXTRA_EMAIL, recipients);
+                    intent.putExtra(Intent.EXTRA_SUBJECT, "Subject Email");
+                    intent.putExtra(Intent.EXTRA_TEXT, "Type Here");
+                    intent.putExtra(Intent.EXTRA_CC, "");
+                    intent.setType("text/html");
+                    intent.setPackage("com.google.android.gm");
+                    startActivity(Intent.createChooser(intent, "Send mail"));
+                }
+                // Maps
+                    String uriMaps = result.getContents();
+                    String maps = "https://maps.google.com?q=loc:" + uriMaps;
+                    String testDoubleData1 = ",";
+                    String testDoubleData2 = ",";
+
+                    boolean b = uriMaps.contains(testDoubleData1) && uriMaps.contains(testDoubleData2);
+                    if (b) {
+                        Intent mapsIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(maps));
+                        mapsIntent.setPackage("com.google.android.apps.maps");
+                        startActivity(mapsIntent);
+
+                    } else {
+                        //jika qrcode ada/ditemukan datanya
+                        try {
+                            //Konversi datanya ke json
+                            JSONObject obj = new JSONObject(result.getContents());
+                            //di set nilai datanya ke textview
+                            textViewNama.setText(obj.getString("Nama"));
+                            textViewKelas.setText(obj.getString("Kelas"));
+                            textViewNIM.setText(obj.getString("NIM"));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(this, result.getContents(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                } else {
+                    super.onActivityResult(requestCode, resultCode, data);
                 }
             }
-        } else {
-            super.onActivityResult(requestCode, resultCode, data);
+            @Override
+            public void onClick (View view){
+            // Perintah Scanning QRCODE
+                qrScan.initiateScan();
+            }
         }
-    }
-
-    @Override
-    public void onClick(View v) {
-        qrScan.initiateScan();
-    }
-
-}
